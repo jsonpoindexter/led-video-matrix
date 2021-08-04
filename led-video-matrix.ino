@@ -6,7 +6,7 @@
 #define NUM_LEDS 1024
 #define DATA_PIN 3
 #define CLOCK_PIN 2
-#define BRIGHTNESS 32
+#define BRIGHTNESS 64
 CRGB leds[NUM_LEDS];
 //CHSV hsvs[NUM_LEDS];
 
@@ -23,25 +23,7 @@ void setup() {
 void loop() { 
  int startChar = Serial.read();
   if (startChar == '*') {
-     //debug: read one led color ( 3 bytes)
-     //Serial.readBytes( (char*)(&leds[5]), 3); // read three bytes: r, g, and b.
      Serial.readBytes( (char*)leds, NUM_LEDS * 3);
-//     for(int i = 0; i < NUM_LEDS; i++) {
-//      CHSV temp = CHSV(hsvs[i]);
-//      if (temp.hue > 60 && temp.hue < 200) {
-//        temp.val = 0;
-//        temp.sat = 0;
-//      }
-//      if (temp.sat > 100 && temp.val > 100) {
-//        temp.hue = 0;
-//        temp.val = 255;
-//        temp.sat = 255;
-//      } else {
-//         temp.val = 0;
-//        temp.sat = 0;
-//      }
-//      leds[i] = CHSV(temp);
-//     }
      FastLED.show();
   }
   else if (startChar >= 0) {

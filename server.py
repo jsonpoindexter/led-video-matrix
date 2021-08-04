@@ -129,9 +129,10 @@ class Player(object):
                 # print('Displaying Frame: ', self.currentFrame)
                 frame = self.images[self.currentFrame]
                 self.currentFrame+=1
+                self.out(frame[::-1])
                 if self.currentFrame >= len(self.images):
                         self.currentFrame = 0
-                self.out(frame[::-1])
+                        time.sleep(5)
 
 if __name__ == "__main__":
         filename = args.filename
@@ -148,8 +149,7 @@ if __name__ == "__main__":
 
         def loop():
                 player.step()
-                reactor.callLater(.008, loop)
-                # exit()
+                reactor.callLater(.010, loop)
 				
         loop()
         reactor.run()
