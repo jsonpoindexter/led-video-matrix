@@ -17,7 +17,7 @@ void setup() {
   FastLED.clear();
   FastLED.show();
   
-  Serial.begin(115200);
+  Serial.begin(921600);
 }
 
 void loop() { 
@@ -28,10 +28,17 @@ void loop() {
      Serial.readBytes( (char*)hsvs, NUM_LEDS * 3);
      for(int i = 0; i < NUM_LEDS; i++) {
       CHSV temp = CHSV(hsvs[i]);
+//      if (temp.hue > 60 && temp.hue < 200) {
+//        temp.val = 0;
+//        temp.sat = 0;
+//      }
       if (temp.sat > 100 && temp.val > 100) {
         temp.hue = 0;
         temp.val = 255;
         temp.sat = 255;
+      } else {
+         temp.val = 0;
+        temp.sat = 0;
       }
       leds[i] = CHSV(temp);
      }
