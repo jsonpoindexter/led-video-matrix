@@ -1,0 +1,12 @@
+Goal: send a video over wifi to led controller
+
+animation data to send:
+* blob - the entire RGB data of all frames. Array of frames, containing an array of HxW RGB for each frames
+* fps - what FPS the original animation was in
+* speed - int - speed of animation play through
+* delay - int - delay between animation play throughs
+
+controller will use mqtt to subsribe to mqtt messages from a server (computer).
+mqtt messages:
+    animation message: data defined above
+    off/on message: turn leds on or off
