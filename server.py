@@ -12,7 +12,7 @@ import cv2
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--fn', dest='filename', action="store", type=str, help="filename")
-parser.add_argument('--baud', dest='baud', action="store", default='921600', type=int, help="baud")
+parser.add_argument('--baud', dest='baud', action="store", default='115200', type=int, help="baud")
 args = parser.parse_args()
 
 width = 32
@@ -94,12 +94,15 @@ class Player(object):
     def reloadImage(self):
         print(self.imagePath)
         self.images = []
+        count = 0
         vidcap = cv2.VideoCapture(self.imagePath)
         success, image = vidcap.read()
         self.images.append(self.resizeImage(image))
-        count = 0
+        print('Read a new frame: ', count)
+        count+=1
         while success:
             success, image = vidcap.read()
+            print(success)
             if success:
                 self.images.append(self.resizeImage(image))
                 print('Read a new frame: ', count)
@@ -124,13 +127,13 @@ class Player(object):
         return imgArr
 
     def step(self):
-        # print('Displaying Frame: ', self.currentFrame)
+        print('Displaying Frame: ', self.currentFrame)
         frame = self.images[self.currentFrame]
         self.currentFrame += 1
         self.out(frame[::-1])
         if self.currentFrame >= len(self.images):
             self.currentFrame = 0
-            time.sleep(3)
+            exit()
 
 
 if __name__ == "__main__":
@@ -144,6 +147,18 @@ if __name__ == "__main__":
         # print(len(colors))
         port.write(str.encode('*'))
         port.write(bytearray(colors.copy(order='C')))
+        while True:
+            try:
+                print ("Attempt to Read")
+                readOut = port.readline().decode('ascii')
+                time.sleep(.1)
+                if (len(readOut) > 0):
+                    print ("Reading: ", readOut)
+                    break 
+            except:
+                pass
+        port.flush()
+       
 
 
     player = Player(filename, frameOut)
@@ -151,8 +166,22 @@ if __name__ == "__main__":
 
     def loop():
         player.step()
-        reactor.callLater(.010, loop)
+        reactor.callLater(0, loop)
 
+    # Wait for setup to finish
+    while True:
+        try:
+            print ("Attempt to Read")
+            readOut = port.readline().decode('ascii')
+            time.sleep(1)
+            if len(readOut) > 0:       
+                print ("Reading: ", readOut)
+                if  "Done setup" in readOut:
+                    print('break')
+                    break 
+        except:
+            pass
+    port.flush()
 
     loop()
     reactor.run()
