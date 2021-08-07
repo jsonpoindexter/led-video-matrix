@@ -13,6 +13,9 @@ CRGB leds[NUM_LEDS];
 int currentIncomingFrame = 0; // Keep track of how many frames we have recieved
 int currentFrame = 0;
 
+String video_dr = "/video_frames/"; // Base SPIFFs video directory
+bool isDone;
+
 void setup() { 
   SPIFFS.begin(); // Start the SPI Flash Files System
   FastLED.addLeds<APA102, DATA_PIN, CLOCK_PIN, BGR>(leds, NUM_LEDS);
@@ -20,24 +23,29 @@ void setup() {
   FastLED.clear();
   FastLED.show();
   displayRGB(); 
-  Serial.begin(115200);
-  Serial.println("Done setup");
+  Serial.begin(921600);
+
+  // Check if an animation already exists
+  isDone = SPIFFS.exists(video_dr + String(MAX_FRAMES));
 }
 
-bool isDone = true;
+
 char buf[NUM_LEDS * 3];
 File file;
+FSInfo fs_info;
 void loop() { 
   int startChar = Serial.read();
   // On start char read frame and save to SPIFFS
   if (startChar == '*') {
-      // Serial.println("startChar recieved");
-    // Read a frame from serial and store into SPIFFS
+      isDone = false;
+      // Read a frame from serial and store into SPIFFS
       Serial.readBytes(buf, NUM_LEDS * 3);
-      file = SPIFFS.open("/" + String(currentIncomingFrame) + ".bin", "w");
+      file = SPIFFS.open(
+        video_dr + String(currentIncomingFrame), "w");
       file.write(buf, NUM_LEDS * 3);
       file.close();
-      Serial.println(currentIncomingFrame);
+      SPIFFS.info(fs_info);
+      Serial.println(fs_info.usedBytes);
       currentIncomingFrame++;
       if (currentIncomingFrame >= MAX_FRAMES){
         isDone = true;
@@ -49,7 +57,7 @@ void loop() {
   }
   if (isDone) {
     EVERY_N_MILLISECONDS(30) {
-      file = SPIFFS.open("/" + String(currentFrame) + ".bin", "r");
+      file = SPIFFS.open(video_dr + String(currentFrame), "r");
       file.readBytes((char*)leds, NUM_LEDS * 3);
       file.close();
       FastLED.show();
