@@ -1,3 +1,11 @@
+// Over The Air flashing
+#include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
+const char* ssid = "quackers";
+const char* password = "ToesBlanket7Can";
+
 #include <FastLED.h>
 #include <FS.h>
 
@@ -17,13 +25,44 @@ String video_dr = "/video_frames/"; // Base SPIFFs video directory
 bool isDone;
 
 void setup() { 
+  Serial.begin(921600);
+    // LED Setup
   SPIFFS.begin(); // Start the SPI Flash Files System
   FastLED.addLeds<APA102, DATA_PIN, CLOCK_PIN, BGR>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGHTNESS);
   FastLED.clear();
   FastLED.show();
   displayRGB(); 
-  Serial.begin(921600);
+
+  // OTA Setup
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
+    Serial.println("Connection Failed! Rebooting...");
+    delay(5000);
+    ESP.restart();
+  }
+  ArduinoOTA.onStart([]() {
+    Serial.println("Start");
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+  });
+  ArduinoOTA.begin();
+  Serial.println("Ready");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
 
   // Check if an animation already exists
   isDone = SPIFFS.exists(video_dr + String(MAX_FRAMES));
@@ -34,6 +73,7 @@ char buf[NUM_LEDS * 3];
 File file;
 FSInfo fs_info;
 void loop() { 
+  ArduinoOTA.handle();
   int startChar = Serial.read();
   // On start char read frame and save to SPIFFS
   if (startChar == '*') {
