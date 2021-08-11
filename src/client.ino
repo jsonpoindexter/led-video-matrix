@@ -1,43 +1,32 @@
 // Over The Air flashing
-#if defined(ESP8266)
-  #include <ESP8266WiFi.h>
-  #include <ESP8266mDNS.h>
-  #include <FS.h>
-#elif defined(ESP32)
-  #include <Arduino.h>
-  #include "SPIFFS.h"
-  #include <WiFi.h>
-  #include <ESPmDNS.h> 
-#endif
-
+#include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 const char* ssid = "quackers";
 const char* password = "ToesBlanket7Can";
 
-#include <FastLED.h>
+// SPIFFS/Filesystem
+#include <FS.h>
+String video_dr = "/video_frames/"; // Base SPIFFs video directory
+bool isDone;
+File file;
+FSInfo fs_info;
 
+#include <FastLED.h>
 #define SERPENTINE_LAYOUT true
 #define MATRIX_WIDTH 32
 #define MATRIX_HEIGHT 32
 #define NUM_LEDS 1024
-#if defined(ESP8266)
-  // https://i2.wp.com/randomnerdtutorials.com/wp-content/uploads/2019/05/ESP8266-WeMos-D1-Mini-pinout-gpio-pin.png?quality=100&strip=all&ssl=1
-  #define DATA_PIN 4 // (D2) Green
-  #define CLOCK_PIN 5 // (D1) White
-#elif defined(ESP32)
-  // https://www.majju.pk/assets/uploads/2020/07/lolin-lite-pinout.jpg
-  #define DATA_PIN 23 // Green
-  #define CLOCK_PIN 22 // White
-#endif
+// https://i2.wp.com/randomnerdtutorials.com/wp-content/uploads/2019/05/ESP8266-WeMos-D1-Mini-pinout-gpio-pin.png?quality=100&strip=all&ssl=1
+#define DATA_PIN 4 // (D2) Green
+#define CLOCK_PIN 5 // (D1) White
 #define BRIGHTNESS 16
 CRGB leds[NUM_LEDS];
 #define MAX_FRAMES 194 // temp max frames, send this over serial later
 int currentIncomingFrame = 0; // Keep track of how many frames we have recieved
 int currentFrame = 0;
 
-String video_dr = "/video_frames/"; // Base SPIFFs video directory
-bool isDone;
 
 void setup() {
    // LED Setup 
@@ -49,21 +38,7 @@ void setup() {
   displayRGB(); 
 
   // SPIFFS / Filesystem setup
-  #if defined(ESP8266)
-    SPIFFS.begin();
-  #elif defined(ESP32)
-    if (!SPIFFS.begin(true)) {
-      Serial.println("An Error has occurred while mounting SPIFFS");
-      return;
-    }
-    bool formatted = SPIFFS.format();
-    if ( formatted ) {
-      Serial.println("SPIFFS formatted successfully");
-    } else {
-      Serial.println("Error formatting");
-    }
-  #endif
-  
+  SPIFFS.begin();
 
   // OTA Setup
   WiFi.mode(WIFI_STA);
@@ -101,8 +76,6 @@ void setup() {
 
 
 char buf[NUM_LEDS * 3];
-File file;
-// FSInfo fs_info;
 void loop() { 
   ArduinoOTA.handle();
   int startChar = Serial.read();
@@ -110,13 +83,13 @@ void loop() {
   if (startChar == '*') {
       isDone = false;
       // Read a frame from serial and store into SPIFFS
-      Serial.readBytes(buf, NUM_LEDS * 3);
+      Serial.readBytes(buf, NUM_LEDS * 3); 
       file = SPIFFS.open(
         video_dr + String(currentIncomingFrame), "w");
       file.write((uint8_t*)buf, NUM_LEDS * 3);
       file.close();
-      // SPIFFS.info(fs_info);
-      // Serial.println(fs_info.usedBytes);
+      SPIFFS.info(fs_info);
+      Serial.println(fs_info.usedBytes);
       currentIncomingFrame++;
       if (currentIncomingFrame >= MAX_FRAMES){
         isDone = true;
